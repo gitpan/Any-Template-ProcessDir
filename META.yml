@@ -3,29 +3,24 @@ abstract: 'Process a directory of templates'
 author:
   - 'Jonathan Swartz <swartz@pobox.com>'
 build_requires:
-  ExtUtils::MakeMaker: 6.42
   File::Copy::Recursive: 0
   Test::More: 0
 configure_requires:
-  ExtUtils::MakeMaker: 6.42
-distribution_type: module
-generated_by: 'Module::Install version 0.91'
+  ExtUtils::MakeMaker: 6.31
+dynamic_config: 0
+generated_by: 'Dist::Zilla version 4.200000, CPAN::Meta::Converter version 2.102400'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
   version: 1.4
 name: Any-Template-ProcessDir
-no_index:
-  directory:
-    - inc
-    - t
 requires:
   File::Find::Wanted: 0
   File::Path: 2.07
   File::Slurp: 0
   File::Spec: 3.0
   Moose: 0.66
-  perl: 5.6.0
 resources:
-  license: http://dev.perl.org/licenses/
-version: 0.01
+  bugtracker: http://rt.cpan.org/NoAuth/Bugs.html?Dist=Any-Template-ProcessDir
+  repository: git://github.com/jonswar/perl-any-template-processdir.git
+version: 0.02

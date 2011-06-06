@@ -1,6 +1,9 @@
 NAME
     Any::Template::ProcessDir -- Process a directory of templates
 
+VERSION
+    version 0.02
+
 SYNOPSIS
         use Any::Template::ProcessDir;
 
@@ -13,7 +16,7 @@ SYNOPSIS
             }
         );
         $pd->process_dir();
-    
+
 DESCRIPTION
     Recursively processes a directory of templates, generating a parallel
     directory of result files. Each file in the source directory may be
@@ -27,6 +30,13 @@ CONSTRUCTOR
 
     dest_dir
         Directory where you want to generate result files.
+
+    Plus one of these:
+
+    process_file
+        A code reference that takes a single argument, the full template
+        filename, and returns the result string. This can use Any::Template
+        or another method altogether.
 
     process_text
         A code reference that takes a single argument, the template text,
@@ -65,19 +75,12 @@ METHODS
         completely and recreated, to eliminate any old files from previous
         processing.
 
-AUTHOR
-    Jonathan Swartz
-
 SEE ALSO
     Any::Template
 
-COPYRIGHT & LICENSE
-    Copyright (C) 2009 Jonathan Swartz.
+COPYRIGHT AND LICENSE
+    This software is copyright (c) 2011 by Jonathan Swartz.
 
-    Any::Template::ProcessDir is provided "as is" and without any express or
-    implied warranties, including, without limitation, the implied
-    warranties of merchantibility and fitness for a particular purpose.
-
-    This program is free software; you can redistribute it and/or modify it
-    under the same terms as Perl itself.
+    This is free software; you can redistribute it and/or modify it under
+    the same terms as the Perl 5 programming language system itself.
 
