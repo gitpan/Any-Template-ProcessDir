@@ -1,6 +1,6 @@
 package Any::Template::ProcessDir;
 BEGIN {
-  $Any::Template::ProcessDir::VERSION = '0.02';
+  $Any::Template::ProcessDir::VERSION = '0.03';
 }
 use 5.006;
 use File::Basename;
@@ -10,19 +10,16 @@ use File::Slurp qw(read_file write_file);
 use File::Spec::Functions qw(catfile catdir);
 use Moose;
 use Moose::Util::TypeConstraints;
+use Try::Tiny;
 use strict;
 use warnings;
 
-has 'dest_dir'         => ( is => 'ro', required => 1 );
-has 'dir_create_mode'  => ( is => 'ro', isa => 'Int', default => oct(775) );
-has 'file_create_mode' => ( is => 'ro', isa => 'Int', default => oct(444) );
-has 'process_file' =>
-( is => 'ro', isa => 'CodeRef', default => sub { \&_default_process_file } );
-
-has 'process_text' =>
-( is => 'ro', isa => 'CodeRef', default => sub { \&_default_process_text } );
-
+has 'dest_dir'             => ( is => 'ro', required => 1 );
+has 'dir_create_mode'      => ( is => 'ro', isa => 'Int', default => oct(775) );
+has 'file_create_mode'     => ( is => 'ro', isa => 'Int', default => oct(444) );
 has 'ignore_files'         => ( is => 'ro', isa => 'CodeRef', default => sub { sub { 0 } } );
+has 'process_file'         => ( is => 'ro', isa => 'CodeRef', default => sub { \&_default_process_file } );
+has 'process_text'         => ( is => 'ro', isa => 'CodeRef', default => sub { \&_default_process_text } );
 has 'readme_filename'      => ( is => 'ro', default => 'README' );
 has 'source_dir'           => ( is => 'ro', required => 1 );
 has 'template_file_suffix' => ( is => 'ro', default => '.src' );
@@ -45,7 +42,7 @@ sub process_dir {
     }
 
     $self->generate_readme();
-    $self->generate_source_symlink();
+    try { $self->generate_source_symlink() };
 }
 
 sub generate_dest_file {
@@ -131,7 +128,7 @@ Any::Template::ProcessDir -- Process a directory of templates
 
 =head1 VERSION
 
-version 0.02
+version 0.03
 
 =head1 SYNOPSIS
 
@@ -143,6 +140,18 @@ version 0.02
         process_text => sub {
             my $template = Any::Template->new( Backend => '...', String => $_[0] );
             $template->process({ ... });
+        }
+    );
+    $pd->process_dir();
+
+    # or
+
+    my $pd = Any::Template::ProcessDir->new(
+        source_dir   => '/path/to/source/dir',
+        dest_dir     => '/path/to/dest/dir',
+        process_text => sub {
+            my $file = $_[0];
+            # do something with $file, return content
         }
     );
     $pd->process_dir();
@@ -176,13 +185,13 @@ Plus one of these:
 =item process_file
 
 A code reference that takes a single argument, the full template filename, and
-returns the result string. This can use Any::Template or another method
+returns the result string. This can use L<Any::Template> or another method
 altogether.
 
 =item process_text
 
 A code reference that takes a single argument, the template text, and returns
-the result string. This can use Any::Template or another method altogether.
+the result string. This can use L<Any::Template> or another method altogether.
 
 =back
 

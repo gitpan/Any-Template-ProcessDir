@@ -27,9 +27,10 @@ my %WriteMakefileArgs = (
     'File::Path' => '2.07',
     'File::Slurp' => '0',
     'File::Spec' => '3.0',
-    'Moose' => '0.66'
+    'Moose' => '0.66',
+    'Try::Tiny' => '0'
   },
-  'VERSION' => '0.02',
+  'VERSION' => '0.03',
   'test' => {
     'TESTS' => 't/*.t'
   }

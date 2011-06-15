@@ -25,7 +25,8 @@
             "File::Path" : "2.07",
             "File::Slurp" : 0,
             "File::Spec" : "3.0",
-            "Moose" : "0.66"
+            "Moose" : "0.66",
+            "Try::Tiny" : 0
          }
       },
       "test" : {
@@ -47,6 +48,6 @@
          "web" : "https://github.com/jonswar/perl-any-template-processdir"
       }
    },
-   "version" : "0.02"
+   "version" : "0.03"
 }
 
