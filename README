@@ -2,14 +2,15 @@ NAME
     Any::Template::ProcessDir -- Process a directory of templates
 
 VERSION
-    version 0.03
+    version 0.04
 
 SYNOPSIS
         use Any::Template::ProcessDir;
 
+        # Process templates and generate result files in a single directory
+        #
         my $pd = Any::Template::ProcessDir->new(
-            source_dir   => '/path/to/source/dir',
-            dest_dir     => '/path/to/dest/dir',
+            dir => '/path/to/dir',
             process_text => sub {
                 my $template = Any::Template->new( Backend => '...', String => $_[0] );
                 $template->process({ ... });
@@ -17,12 +18,12 @@ SYNOPSIS
         );
         $pd->process_dir();
 
-        # or
-
+        # Process templates and generate result files to a separate directory
+        #
         my $pd = Any::Template::ProcessDir->new(
-            source_dir   => '/path/to/source/dir',
-            dest_dir     => '/path/to/dest/dir',
-            process_text => sub {
+            source_dir => '/path/to/source/dir',
+            dest_dir   => '/path/to/dest/dir',
+            process_file => sub {
                 my $file = $_[0];
                 # do something with $file, return content
             }
@@ -30,36 +31,48 @@ SYNOPSIS
         $pd->process_dir();
 
 DESCRIPTION
-    Recursively processes a directory of templates, generating a parallel
-    directory of result files. Each file in the source directory may be
-    template-processed, copied, or ignored depending on its pathname.
+    Recursively processes a directory of templates, generating a set of
+    result files in the same directory or in a parallel directory. Each file
+    in the source directory may be template-processed, copied, or ignored
+    depending on its pathname.
 
 CONSTRUCTOR
-    Required parameters:
+  Specifying directory/directories
+    *   If you want to generate the result files in the same directory as
+        the templates, just specify *dir*.
 
-    source_dir
-        Directory containing the template files.
+            my $pd = Any::Template::ProcessDir->new(
+                dir => '/path/to/dir',
+                ...
+            );
 
-    dest_dir
-        Directory where you want to generate result files.
+    *   If you want to generate the result files in a separate directory
+        from the templates, specify *source_dir* and *dest_dir*.
 
-    Plus one of these:
+            my $pd = Any::Template::ProcessDir->new(
+                source_dir => '/path/to/source/dir',
+                source_dir => '/path/to/dest/dir',
+                ...
+            );
 
+  Specifying how to process templates
     process_file
-        A code reference that takes a single argument, the full template
-        filename, and returns the result string. This can use Any::Template
-        or another method altogether.
+        A code reference that takes the full template filename and the
+        `Any::Template::ProcessDir' object as arguments, and returns the
+        result string. This can use Any::Template or another method
+        altogether. By default it calls process_text on the contents of the
+        file.
 
     process_text
-        A code reference that takes a single argument, the template text,
-        and returns the result string. This can use Any::Template or another
-        method altogether.
+        A code reference that takes the template text and the
+        `Any::Template::ProcessDir' object as arguments, and returns the
+        result string. This can use Any::Template or another method
+        altogether.
 
-    Optional parameters:
-
+  Optional parameters
     dir_create_mode
         Permissions mode to use when creating destination directories.
-        Defaults to 0775.
+        Defaults to 0775. No effect if you are using a single directory.
 
     file_create_mode
         Permissions mode to use when creating destination files. Defaults to
@@ -72,7 +85,8 @@ CONSTRUCTOR
 
     readme_filename
         Name of a README file to generate in the destination directory -
-        defaults to "README".
+        defaults to "README". No file will be generated if you pass undef or
+        if you are using a single directory.
 
     template_file_suffix
         Suffix of template files in source directory. Defaults to ".src".
@@ -83,9 +97,9 @@ CONSTRUCTOR
 
 METHODS
     process_dir
-        Process the directory. The destination directory will be removed
-        completely and recreated, to eliminate any old files from previous
-        processing.
+        Process the directory. If using multiple directories, the
+        destination directory will be removed completely and recreated, to
+        eliminate any old files from previous processing.
 
 SEE ALSO
     Any::Template

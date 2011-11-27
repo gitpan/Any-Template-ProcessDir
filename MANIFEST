@@ -9,7 +9,8 @@ dist.ini
 git/config
 lib/Any/Template/ProcessDir.pm
 t/00-load.t
-t/01-process.t
+t/process-multiple-dirs.t
+t/process-single-dir.t
 t/source/bar/bap.txt
 t/source/bar/baz.src
 t/source/foo.src

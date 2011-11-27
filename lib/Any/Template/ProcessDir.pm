@@ -1,6 +1,6 @@
 package Any::Template::ProcessDir;
 BEGIN {
-  $Any::Template::ProcessDir::VERSION = '0.03';
+  $Any::Template::ProcessDir::VERSION = '0.04';
 }
 use 5.006;
 use File::Basename;
@@ -14,23 +14,41 @@ use Try::Tiny;
 use strict;
 use warnings;
 
-has 'dest_dir'             => ( is => 'ro', required => 1 );
+has 'dest_dir'             => ( is => 'ro' );
+has 'dir'                  => ( is => 'ro' );
 has 'dir_create_mode'      => ( is => 'ro', isa => 'Int', default => oct(775) );
 has 'file_create_mode'     => ( is => 'ro', isa => 'Int', default => oct(444) );
 has 'ignore_files'         => ( is => 'ro', isa => 'CodeRef', default => sub { sub { 0 } } );
-has 'process_file'         => ( is => 'ro', isa => 'CodeRef', default => sub { \&_default_process_file } );
-has 'process_text'         => ( is => 'ro', isa => 'CodeRef', default => sub { \&_default_process_text } );
+has 'process_file'         => ( is => 'ro', isa => 'CodeRef', lazy_build => 1 );
+has 'process_text'         => ( is => 'ro', isa => 'CodeRef', lazy_build => 1 );
 has 'readme_filename'      => ( is => 'ro', default => 'README' );
-has 'source_dir'           => ( is => 'ro', required => 1 );
+has 'same_dir'             => ( is => 'ro', init_arg => undef );
+has 'source_dir'           => ( is => 'ro' );
 has 'template_file_suffix' => ( is => 'ro', default => '.src' );
+
+sub BUILD {
+    my ( $self, $params ) = @_;
+
+    die "you must pass one of dir and source_dir/dest_dir"
+      if (
+        defined( $self->dir ) ==
+        ( defined( $self->source_dir ) && defined( $self->dest_dir ) ) );
+    if ( defined( $self->dir ) ) {
+        $self->{same_dir} = 1;
+        $self->{source_dir} = $self->{dest_dir} = $self->dir;
+    }
+}
 
 sub process_dir {
     my ($self) = @_;
 
     my $source_dir = $self->source_dir;
     my $dest_dir   = $self->dest_dir;
-    remove_tree($dest_dir);
-    die "could not remove '$dest_dir'" if -d $dest_dir;
+
+    if ( !$self->same_dir ) {
+        remove_tree($dest_dir);
+        die "could not remove '$dest_dir'" if -d $dest_dir;
+    }
 
     my $ignore_files = $self->ignore_files;
     my @source_files =
@@ -41,8 +59,10 @@ sub process_dir {
         $self->generate_dest_file($source_file);
     }
 
-    $self->generate_readme();
-    try { $self->generate_source_symlink() };
+    if ( !$self->same_dir ) {
+        $self->generate_readme();
+        try { $self->generate_source_symlink() };
+    }
 }
 
 sub generate_dest_file {
@@ -67,35 +87,38 @@ sub generate_dest_file {
         $dest_text = read_file($source_file);
     }
 
-    die "$dest_file already exists!" if -f $dest_file;
-
-    make_path( dirname($dest_file) );
-    chmod( $self->dir_create_mode(), dirname($dest_file) )
-      if defined( $self->dir_create_mode() );
+    if ( $self->same_dir ) {
+        unlink($dest_file);
+    }
+    else {
+        make_path( dirname($dest_file) );
+        chmod( $self->dir_create_mode(), dirname($dest_file) )
+          if defined( $self->dir_create_mode() );
+    }
 
     write_file( $dest_file, $dest_text );
     chmod( $self->file_create_mode(), $dest_file )
       if defined( $self->file_create_mode() );
 }
 
-sub _default_process_file {
-    my ( $file, $self ) = @_;
+sub _build_process_file {
+    return sub {
+        my ( $file, $self ) = @_;
 
-    my $code = $self->process_text;
-    return $code->( read_file($file), $self );
+        my $code = $self->process_text;
+        return $code->( read_file($file), $self );
+      }
 }
 
-sub _default_process_text {
-    my ( $text, $self ) = @_;
-
-    return $text;
+sub _build_process_text {
+    return sub { die "must specify one of process_file or process_text" }
 }
 
 sub generate_readme {
     my $self = shift;
 
-    my $readme_file = catfile( $self->dest_dir, $self->readme_filename );
-    if ( defined($readme_file) ) {
+    if ( defined( $self->readme_filename ) ) {
+        my $readme_file = catfile( $self->dest_dir, $self->readme_filename );
         unlink($readme_file);
         write_file(
             $readme_file,
@@ -128,15 +151,16 @@ Any::Template::ProcessDir -- Process a directory of templates
 
 =head1 VERSION
 
-version 0.03
+version 0.04
 
 =head1 SYNOPSIS
 
     use Any::Template::ProcessDir;
 
+    # Process templates and generate result files in a single directory
+    #
     my $pd = Any::Template::ProcessDir->new(
-        source_dir   => '/path/to/source/dir',
-        dest_dir     => '/path/to/dest/dir',
+        dir => '/path/to/dir',
         process_text => sub {
             my $template = Any::Template->new( Backend => '...', String => $_[0] );
             $template->process({ ... });
@@ -144,12 +168,12 @@ version 0.03
     );
     $pd->process_dir();
 
-    # or
-
+    # Process templates and generate result files to a separate directory
+    #
     my $pd = Any::Template::ProcessDir->new(
-        source_dir   => '/path/to/source/dir',
-        dest_dir     => '/path/to/dest/dir',
-        process_text => sub {
+        source_dir => '/path/to/source/dir',
+        dest_dir   => '/path/to/dest/dir',
+        process_file => sub {
             my $file = $_[0];
             # do something with $file, return content
         }
@@ -158,51 +182,67 @@ version 0.03
 
 =head1 DESCRIPTION
 
-Recursively processes a directory of templates, generating a parallel directory
-of result files. Each file in the source directory may be template-processed,
-copied, or ignored depending on its pathname.
+Recursively processes a directory of templates, generating a set of result
+files in the same directory or in a parallel directory. Each file in the source
+directory may be template-processed, copied, or ignored depending on its
+pathname.
 
 =head1 CONSTRUCTOR
 
-Required parameters:
+=head2 Specifying directory/directories
 
 =over
 
-=item source_dir
+=item *
 
-Directory containing the template files.
+If you want to generate the result files in the B<same> directory as the
+templates, just specify I<dir>.
 
-=item dest_dir
+    my $pd = Any::Template::ProcessDir->new(
+        dir => '/path/to/dir',
+        ...
+    );
 
-Directory where you want to generate result files.
+=item *
+
+If you want to generate the result files in a B<separate> directory from the
+templates, specify I<source_dir> and I<dest_dir>.
+
+    my $pd = Any::Template::ProcessDir->new(
+        source_dir => '/path/to/source/dir',
+        source_dir => '/path/to/dest/dir',
+        ...
+    );
 
 =back
 
-Plus one of these:
+=head2 Specifying how to process templates
 
 =over
 
 =item process_file
 
-A code reference that takes a single argument, the full template filename, and
-returns the result string. This can use L<Any::Template> or another method
-altogether.
+A code reference that takes the full template filename and the
+C<Any::Template::ProcessDir> object as arguments, and returns the result
+string. This can use L<Any::Template> or another method altogether. By default
+it calls L</process_text> on the contents of the file.
 
 =item process_text
 
-A code reference that takes a single argument, the template text, and returns
-the result string. This can use L<Any::Template> or another method altogether.
+A code reference that takes the template text and the
+C<Any::Template::ProcessDir> object as arguments, and returns the result
+string. This can use L<Any::Template> or another method altogether.
 
 =back
 
-Optional parameters:
+=head2 Optional parameters
 
 =over
 
 =item dir_create_mode
 
 Permissions mode to use when creating destination directories. Defaults to
-0775.
+0775. No effect if you are using a single directory.
 
 =item file_create_mode
 
@@ -217,7 +257,8 @@ ignored. By default, all files will be considered.
 =item readme_filename
 
 Name of a README file to generate in the destination directory - defaults to
-"README".
+"README". No file will be generated if you pass undef or if you are using a
+single directory.
 
 =item template_file_suffix
 
@@ -235,8 +276,9 @@ L</ignore_file_suffix>) will simply be copied to the destination.
 
 =item process_dir
 
-Process the directory. The destination directory will be removed completely and
-recreated, to eliminate any old files from previous processing.
+Process the directory. If using multiple directories, the destination directory
+will be removed completely and recreated, to eliminate any old files from
+previous processing.
 
 =back
 
