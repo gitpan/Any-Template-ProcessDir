@@ -2,7 +2,7 @@ NAME
     Any::Template::ProcessDir -- Process a directory of templates
 
 VERSION
-    version 0.04
+    version 0.05
 
 SYNOPSIS
         use Any::Template::ProcessDir;
