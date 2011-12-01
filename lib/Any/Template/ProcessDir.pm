@@ -1,6 +1,6 @@
 package Any::Template::ProcessDir;
 BEGIN {
-  $Any::Template::ProcessDir::VERSION = '0.05';
+  $Any::Template::ProcessDir::VERSION = '0.06';
 }
 use 5.006;
 use File::Basename;
@@ -60,7 +60,8 @@ sub process_dir {
 
     my $ignore_files = $self->ignore_files;
     my @source_files =
-      find_wanted( sub { -f && !$ignore_files->($_) }, $source_dir );
+      find_wanted( sub { -f && !$ignore_files->($File::Find::name) },
+        $source_dir );
     my $template_file_suffix = $self->template_file_suffix;
 
     foreach my $source_file (@source_files) {
@@ -159,7 +160,7 @@ Any::Template::ProcessDir -- Process a directory of templates
 
 =head1 VERSION
 
-version 0.05
+version 0.06
 
 =head1 SYNOPSIS
 
