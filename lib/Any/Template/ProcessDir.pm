@@ -1,6 +1,6 @@
 package Any::Template::ProcessDir;
 BEGIN {
-  $Any::Template::ProcessDir::VERSION = '0.06';
+  $Any::Template::ProcessDir::VERSION = '0.07';
 }
 use 5.006;
 use File::Basename;
@@ -160,7 +160,7 @@ Any::Template::ProcessDir -- Process a directory of templates
 
 =head1 VERSION
 
-version 0.06
+version 0.07
 
 =head1 SYNOPSIS
 
